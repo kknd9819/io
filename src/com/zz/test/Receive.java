@@ -2,9 +2,9 @@ package com.zz.test;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
 import java.net.Socket;
 
 import com.zz.io.OSEnum;
@@ -29,16 +29,18 @@ public class Receive implements Runnable{
 	@Override
 	public void run() {
 		try {
-			ObjectInputStream input = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
-			Data data = null;
-			long total = 1;
-			long length = 0;
+			DataInputStream input = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+			int read = 0;
 			long fileLength = 0;
+			long length = 0;
+			int total = 0;
+			byte[] bytes = new byte[8192];
 			while(true){
-				data = (Data)input.readObject();
-				if(total > data.getTotal()) break;		
-				substring = getSubstring(data.getAbsolutePath());
-				fileName = getFileName(data.getAbsolutePath());
+				if(total > input.readInt()) break;
+				String absolutePath = input.readUTF();
+				long readLong = input.readLong();
+				substring = getSubstring(absolutePath);
+				fileName = getFileName(absolutePath);
 				targetPath = getTargetPath(socket, OSEnum.WINDOWS_G.getName());
 				File file = new File(targetPath);
 				if(!file.exists()){
@@ -46,20 +48,27 @@ public class Receive implements Runnable{
 				}
 				if(out == null){
 					out = new BufferedOutputStream(new FileOutputStream(targetPath));
-					fileLength = data.getLength();
+					fileLength = readLong;
 				}
 				if(length < fileLength){
-					out.write(data.getBytes());
-					out.flush();
-					length += data.getBytes().length;
+					read = input.read(bytes, 0, bytes.length);
+					if(read != -1){
+						out.write(bytes,0,read);
+						out.flush();
+						length += read;
+					}
 				} else {
 					length = 0;
-					length += data.getBytes().length;
+					length += read;
 					out.close();
 					out = new BufferedOutputStream(new FileOutputStream(targetPath));
-					fileLength = data.getLength();
-					out.write(data.getBytes());
-					out.flush();
+					fileLength = readLong;
+					read = input.read(bytes, 0, bytes.length);
+					if(read != -1){
+						out.write(bytes,0,read);
+						out.flush();
+						length += read;
+					}
 					total ++;
 				}
 			}

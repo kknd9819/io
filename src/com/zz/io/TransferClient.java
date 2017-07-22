@@ -77,7 +77,7 @@ public class TransferClient {
 
 			private Socket socket = null;
 			private String ip = "localhost";
-			private int port = 10000;
+			private int port = Constants.DEFAULT_BIND_PORT;
 
 			public void run() {
 				System.out.println("开始发送文件:" + filePath);
@@ -90,7 +90,7 @@ public class TransferClient {
 								new BufferedInputStream(new FileInputStream(filePath)));
 						DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-						dos.writeUTF(file.getName());
+						dos.writeUTF(file.getAbsolutePath());
 						dos.flush();
 						dos.writeLong(file.length());
 						dos.flush();

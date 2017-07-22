@@ -1,6 +1,8 @@
 package com.zz.test;
 
 import java.io.Serializable;
+import java.util.Random;
+import java.util.Vector;
 
 public class Data implements Serializable {
 
@@ -49,5 +51,5 @@ public class Data implements Serializable {
 	public void setBytes(byte[] bytes) {
 		this.bytes = bytes;
 	}
-
+	
 }

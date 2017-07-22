@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,6 +20,13 @@ public class TransferServer {
 
 	private ExecutorService executorService; // 线程池
 	private final int POOL_SIZE = 4; // 单个CPU的线程池大小
+
+	/** 截取路径 */
+	private String substring;
+	/** 文件名 */
+	private String fileName;
+	/** 目标路径 */
+	private String targetPath; // 目标路径 = G:\127.0.0.1\盘符名称\文件夹路径\文件名.扩展名
 
 	/**
 	 * 不带参数的构造器，选用默认的端口号
@@ -66,7 +74,20 @@ public class TransferServer {
 		}
 	}
 
-	public void service() {
+	private String getFileName(String absolutePath) {
+		return absolutePath.substring(absolutePath.lastIndexOf("\\") + 1, absolutePath.length());
+	}
+
+	private String getSubstring(String absolutePath) {
+		return absolutePath.substring(0, 1)
+				+ absolutePath.substring(2, absolutePath.length() - getFileName(absolutePath).length() - 1);
+	}
+
+	private String getTargetPath(Socket socket, String OSPath) {
+		return OSPath + socket.getInetAddress().getHostAddress() + "\\" + substring + "\\" + fileName;
+	}
+
+	public synchronized void service() {
 		Socket socket = null;
 		while (true) {
 			try {
@@ -96,20 +117,30 @@ public class TransferServer {
 			byte[] buf = new byte[bufferSize];
 
 			try {
-				dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-				String savePath = Constants.RECEIVE_FILE_PATH + dis.readUTF();
-				long length = dis.readLong();
-				dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(savePath)));
+				synchronized (Handler.class) {
+					dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+					String absolutePath = dis.readUTF();
+					substring = getSubstring(absolutePath);
+					fileName = getFileName(absolutePath);
+					targetPath = getTargetPath(socket, OSEnum.WINDOWS_G.getName());
+					String savePath = targetPath;
+					File file = new File(savePath);
+					if (!file.exists()) {
+						file.getParentFile().mkdirs();
+					}
+					long length = dis.readLong();
+					dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(savePath)));
 
-				int read = 0;
-				long passedlen = 0;
-				while ((read = dis.read(buf)) != -1) {
-					passedlen += read;
-					dos.write(buf, 0, read);
-					System.out.println("文件[" + savePath + "]已经接收: " + passedlen * 100L / length + "%");
+					int read = 0;
+					long passedlen = 0;
+					while ((read = dis.read(buf)) != -1) {
+						passedlen += read;
+						dos.write(buf, 0, read);
+						System.out.println("文件[" + savePath + "]已经接收: " + passedlen * 100L / length + "%");
+					}
+					System.out.println("文件: " + savePath + "接收完成!");
+
 				}
-				System.out.println("文件: " + savePath + "接收完成!");
-
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.out.println("接收文件失败!");
