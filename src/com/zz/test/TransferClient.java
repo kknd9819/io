@@ -1,4 +1,4 @@
-package com.zz.io;
+package com.zz.test;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -91,7 +91,7 @@ public class TransferClient {
 								new BufferedInputStream(new FileInputStream(filePath)));
 						DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-						dos.writeUTF(file.getName());
+						dos.writeUTF(file.getAbsolutePath());
 						dos.flush();
 						dos.writeLong(file.length());
 						dos.flush();
