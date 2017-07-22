@@ -20,6 +20,10 @@ public class TransferClient {
 	private static ArrayList<String> fileList = new ArrayList<String>();
 
 //	private String sendFilePath = Constants.SEND_FILE_PATH;
+	
+	private static String IP_Adress = "127.0.0.1";
+
+	private String ip2;
 
 	/**
 	 * 带参数的构造器，用户设定需要传送文件的文件夹
@@ -40,7 +44,11 @@ public class TransferClient {
 		}
 	}
 
-	public void service() {
+	public void service(String ip) {
+		ip2 = ip;
+		if(ip2 != null ||!ip2.equals("")){
+			IP_Adress = ip2;
+		}
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		Vector<Integer> vector = getRandom(fileList.size());
 		for(Iterator<Integer> iterator = vector.iterator();iterator.hasNext();){
@@ -82,7 +90,7 @@ public class TransferClient {
 		return new Runnable() {
 
 			private Socket socket = null;
-			private String ip = "localhost";
+			private String ip = IP_Adress;
 			private int port = Constants.DEFAULT_BIND_PORT;
 
 			public void run() {	
@@ -137,15 +145,17 @@ public class TransferClient {
 	}
 
 	public static void main(String[] args) {
+		System.out.println("请输入服务器的ip地址或域名: ");
+		Scanner input = new Scanner(System.in);
+		String ip = input.nextLine();
 		System.out.println("请输入你要拷贝的文件夹,例如 D:\\example\\");
 		System.out.println("如果不输入则默认拷贝整个磁盘");
-		Scanner input = new Scanner(System.in);
 		String value = input.nextLine();
 		input.close();
 		if(value == null || value.equals("")){
-			new TransferClient().service();
+			new TransferClient().service(ip);
 		} else {
-			new TransferClient(value).service();
+			new TransferClient(value).service(ip);
 		}
 		
 	}
