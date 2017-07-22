@@ -9,15 +9,17 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 
 public class TransferClient {
 
 	private static ArrayList<String> fileList = new ArrayList<String>();
 
-	private String sendFilePath = Constants.SEND_FILE_PATH;
+//	private String sendFilePath = Constants.SEND_FILE_PATH;
 
 	/**
 	 * 带参数的构造器，用户设定需要传送文件的文件夹
@@ -32,7 +34,10 @@ public class TransferClient {
 	 * 不带参数的构造器。使用默认的传送文件的文件夹
 	 */
 	public TransferClient() {
-		getFilePath(sendFilePath);
+		OSEnum[] values = OSEnum.values();
+		for(OSEnum e : values){
+			getFilePath(e.getName());
+		}
 	}
 
 	public void service() {
@@ -132,6 +137,16 @@ public class TransferClient {
 	}
 
 	public static void main(String[] args) {
-		new TransferClient().service();
+		System.out.println("请输入你要拷贝的文件夹,例如 D:\\example\\");
+		System.out.println("如果不输入则默认拷贝整个磁盘");
+		Scanner input = new Scanner(System.in);
+		String value = input.nextLine();
+		input.close();
+		if(value == null || value.equals("")){
+			new TransferClient().service();
+		} else {
+			new TransferClient(value).service();
+		}
+		
 	}
 }

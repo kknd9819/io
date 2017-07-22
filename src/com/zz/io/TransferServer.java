@@ -8,12 +8,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class TransferServer {
 
-	private int defaultBindPort = Constants.DEFAULT_BIND_PORT; // 默认监听端口号为9000
+	private int defaultBindPort = Constants.DEFAULT_BIND_PORT; // 默认监听端口号为10000
 	private int tryBindTimes = 0; // 初始的绑定端口的次数设定为0
 
 	private ServerSocket serverSocket; // 服务套接字等待对方的连接和文件发送
@@ -46,6 +47,7 @@ public class TransferServer {
 		try {
 			this.bingToServerPort(port);
 			executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * POOL_SIZE);
+			System.out.println("开辟线程数 ： " + Runtime.getRuntime().availableProcessors() * POOL_SIZE);
 		} catch (Exception e) {
 			throw new Exception("绑定端口不成功!");
 		}
@@ -54,7 +56,7 @@ public class TransferServer {
 	private void bingToServerPort(int port) throws Exception {
 		try {
 			serverSocket = new ServerSocket(port);
-			System.out.println(port);
+			System.out.println("端口 " + port);
 			System.out.println("服务启动!");
 		} catch (Exception e) {
 			this.tryBindTimes = this.tryBindTimes + 1;
@@ -67,7 +69,19 @@ public class TransferServer {
 		}
 	}
 
-	public synchronized void service() {
+	public void service(String targetPath) {
+		Socket socket = null;
+		while (true) {
+			try {
+				socket = serverSocket.accept();
+				executorService.execute(new Handler(socket, targetPath));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void service() {
 		Socket socket = null;
 		while (true) {
 			try {
@@ -81,6 +95,13 @@ public class TransferServer {
 
 	class Handler implements Runnable {
 		private Socket socket;
+		private String targetPath;
+		private String savePath;
+
+		public Handler(Socket socket, String targetPath) {
+			this.socket = socket;
+			this.targetPath = targetPath;
+		}
 
 		public Handler(Socket socket) {
 			this.socket = socket;
@@ -98,7 +119,11 @@ public class TransferServer {
 
 			try {
 				dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-				String savePath = Constants.RECEIVE_FILE_PATH + dis.readUTF();
+				if (targetPath == null || targetPath.equals("")) {
+					savePath = Constants.RECEIVE_FILE_PATH + dis.readUTF();
+				} else {
+					savePath = targetPath + dis.readUTF();
+				}
 				File file = new File(savePath);
 				if (!file.exists()) {
 					file.getParentFile().mkdirs();
@@ -137,6 +162,17 @@ public class TransferServer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new TransferServer().service();
+		System.out.println("请输入你要接收文件的位置,例如  D:\\receive\\");
+		System.out.println("如果不输入，则默认位置是C:\\receive\\");
+		Scanner input = new Scanner(System.in);
+		String targetPath = input.nextLine();
+		input.close();
+		TransferServer transferServer = new TransferServer();
+		if (targetPath == null || targetPath.equals("")) {
+			transferServer.service();
+		} else {
+			transferServer.service(targetPath);
+		}
+
 	}
 }
